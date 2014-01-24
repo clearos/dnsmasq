@@ -13,7 +13,7 @@
 
 Name:           dnsmasq
 Version:        2.66
-Release:        10%{?extraversion}%{?dist}
+Release:        12%{?extraversion}%{?dist}
 Summary:        A lightweight DHCP/caching DNS server
 
 Group:          System Environment/Daemons
@@ -199,6 +199,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.66-12
+- Mass rebuild 2014-01-24
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.66-11
+- Mass rebuild 2013-12-27
+
 * Thu Aug 15 2013 Tomas Hozza <thozza@redhat.com> - 2.66-10
 - Use SO_REUSEPORT and SO_REUSEADDR if possible for DHCPv4/6 (#981973)
 
