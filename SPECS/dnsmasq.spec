@@ -13,7 +13,7 @@
 
 Name:           dnsmasq
 Version:        2.66
-Release:        13%{?extraversion}%{?dist}
+Release:        14%{?extraversion}%{?dist}
 Summary:        A lightweight DHCP/caching DNS server
 
 Group:          System Environment/Daemons
@@ -65,6 +65,8 @@ Patch18:        %{name}-2.66-Fix_crash_with_empty_DHCP_string_options.patch
 Patch19:        %{name}-2.66-Set-SOREUSEADDR-as-well-as-SOREUSEPORT-on-DHCP-socke.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1179756
 Patch20:        %{name}-2.66-Support-IPv6-assignment-based-on-MAC-for-DHCPv6.patch
+# https://bugzilla.redhat.com/show_bug.cgi?id=1232677
+Patch21:        %{name}-2.66-dhcp-v4-v6.patch
 
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -122,6 +124,7 @@ query/remove a DHCP server's leases.
 %patch18 -p1 -b .empty_dhcp_opts
 %patch19 -p1 -b .reuseport
 %patch20 -p1
+%patch21 -p1
 
 # use /var/lib/dnsmasq instead of /var/lib/misc
 for file in dnsmasq.conf.example man/dnsmasq.8 man/es/dnsmasq.8 src/config.h; do
@@ -202,6 +205,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
+* Thu Jun 25 2015 Pavel Šimerda <psimerda@redhat.com> - 2.66-14
+- Resolves: #1232677 - handle IPv4 and IPv6 host entries properly
+
 * Wed Feb 25 2015 Pavel Šimerda <psimerda@redhat.com> - 2.66-13
 - Resolves: #1179756 - dnsmasq does not support MAC address based matching for
   IPv6
