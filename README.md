@@ -2,9 +2,6 @@
 
 Forked version of dnsmasq with ClearOS changes applied
 
-## Update usage
-  Add __#kojibuild__ to commit message to automatically build
-
 * git clone git+ssh://git@github.com/clearos/dnsmasq.git
 * cd dnsmasq
 * git checkout master
