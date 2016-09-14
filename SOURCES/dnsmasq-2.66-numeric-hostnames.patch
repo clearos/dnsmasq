@@ -1,0 +1,20 @@
+diff --git a/src/util.c b/src/util.c
+index af4031c..759099c 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -151,12 +151,12 @@ int legal_hostname(char *name)
+     /* check for legal char a-z A-Z 0-9 - _ . */
+     {
+       if ((c >= 'A' && c <= 'Z') ||
+-	  (c >= 'a' && c <= 'z'))
++	  (c >= 'a' && c <= 'z') ||
++	  (c >= '0' && c <= '9'))
+ 	continue;
+ 
+       if (!first && 
+-	  ((c >= '0' && c <= '9') ||
+-	   c == '-' || c == '_'))
++	  (c == '-' || c == '_'))
+ 	continue;
+ 
+       /* end of hostname part */
