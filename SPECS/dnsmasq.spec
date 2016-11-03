@@ -13,7 +13,7 @@
 
 Name:           dnsmasq
 Version:        2.66
-Release:        14%{?extraversion}%{?dist}.1
+Release:        21%{?extraversion}%{?dist}
 Summary:        A lightweight DHCP/caching DNS server
 
 Group:          System Environment/Daemons
@@ -67,8 +67,12 @@ Patch19:        %{name}-2.66-Set-SOREUSEADDR-as-well-as-SOREUSEPORT-on-DHCP-sock
 Patch20:        %{name}-2.66-Support-IPv6-assignment-based-on-MAC-for-DHCPv6.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1232677
 Patch21:        %{name}-2.66-dhcp-v4-v6.patch
+# https://bugzilla.redhat.com/show_bug.cgi?id=1275626
+Patch22:        %{name}-2.66-rh1275626.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1358427
-Patch23:	%{name}-2.66-numeric-hostnames.patch
+Patch23:        %{name}-2.66-numeric-hostnames.patch
+# https://bugzilla.redhat.com/show_bug.cgi?id=1367772
+Patch24:        %{name}-2.66-dns-sleep-resume.patch
 
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
@@ -127,7 +131,9 @@ query/remove a DHCP server's leases.
 %patch19 -p1 -b .reuseport
 %patch20 -p1
 %patch21 -p1
+%patch22 -p1
 %patch23 -p1
+%patch24 -p1
 
 # use /var/lib/dnsmasq instead of /var/lib/misc
 for file in dnsmasq.conf.example man/dnsmasq.8 man/es/dnsmasq.8 src/config.h; do
@@ -208,8 +214,27 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
-* Tue Aug 30 2016 Pavel Šimerda <pavlix@pavlix.net> - 2.66-14.1
-- Resolves: #1371460 - dhcp errors with hostnames beginning with numbers
+* Tue Sep 13 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-21
+- Related: #1367772 - fix dns server update
+
+* Thu Sep 08 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-20
+- Related: #1367772 - additional upstream patch
+
+* Tue Sep 06 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-19
+- Resolves: #1367772 - dns not updated after sleep and resume laptop
+
+* Fri Aug 26 2016 root - 2.66-18
+- Resolves: #1358427 - dhcp errors with hostnames beginning with numbers
+
+* Tue May 31 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-17
+- Resolves: #1275626 - modify the patch using new information
+
+* Mon May 30 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-16
+- Resolves: #1275626 - use the patch
+
+* Wed May 25 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-15
+- Resolves: #1275626 - dnsmasq crash with coredump on infiniband network with
+  OpenStack
 
 * Thu Jun 25 2015 Pavel Šimerda <psimerda@redhat.com> - 2.66-14
 - Resolves: #1232677 - handle IPv4 and IPv6 host entries properly

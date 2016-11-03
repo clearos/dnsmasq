@@ -1,0 +1,15 @@
+--- dnsmasq-2.66/src/dhcp-common.c.orig	2016-05-31 12:59:36.269904624 +0200
++++ dnsmasq-2.66/src/dhcp-common.c	2016-05-31 12:58:49.929904889 +0200
+@@ -316,9 +316,10 @@
+ 	  
+ 	  /* dhcpcd prefixes ASCII client IDs by zero which is wrong, but we try and
+ 	     cope with that here */
+-	  if (!(context->flags & CONTEXT_V6) && *clid == 0 && config->clid_len == clid_len-1  &&
++	  if ((!context || !(context->flags & CONTEXT_V6)) && (!clid || *clid == 0) &&
++	      config->clid_len == clid_len-1  &&
+ 	      memcmp(config->clid, clid+1, clid_len-1) == 0 &&
+-	      is_config_in_context(context, config))
++	      (!context || is_config_in_context(context, config)))
+ 	    return config;
+ 	}
+   

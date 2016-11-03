@@ -1,0 +1,127 @@
+commit 64d3d2c83b30c751570faf0c5d527ff3da9f2036
+Author: Beniamino Galvani <bgalvani@redhat.com>
+Date:   Sun Aug 28 20:44:05 2016 +0100
+
+    Handle binding upstream servers to an interface
+    (--server=1.2.3.4@eth0) when the named interface
+    is destroyed and recreated in the kernel.
+
+diff --git a/src/dbus.c b/src/dbus.c
+index 7379341..e56d8c7 100644
+--- a/src/dbus.c
++++ b/src/dbus.c
+@@ -161,6 +161,10 @@ static void add_update_server(union mysockaddr *addr,
+   
+   if (serv)
+     {
++      serv->sfd = NULL;
++      serv->queries = 0;
++      serv->failed_queries = 0;
++
+       if (interface)
+ 	strcpy(serv->interface, interface);
+       else
+diff --git a/src/dnsmasq.h b/src/dnsmasq.h
+index 69ae7a7..7b8020e 100644
+--- a/src/dnsmasq.h
++++ b/src/dnsmasq.h
+@@ -412,6 +412,7 @@ struct serverfd {
+   int fd;
+   union mysockaddr source_addr;
+   char interface[IF_NAMESIZE+1];
++  unsigned int ifindex, used;
+   struct serverfd *next;
+ };
+ 
+diff --git a/src/network.c b/src/network.c
+index 792914b..d2bebcc 100644
+--- a/src/network.c
++++ b/src/network.c
+@@ -839,6 +839,7 @@ int local_bind(int fd, union mysockaddr *addr, char *intname, int is_tcp)
+ static struct serverfd *allocate_sfd(union mysockaddr *addr, char *intname)
+ {
+   struct serverfd *sfd;
++  unsigned int ifindex = 0;
+   int errsave;
+ 
+   /* when using random ports, servers which would otherwise use
+@@ -859,11 +860,15 @@ static struct serverfd *allocate_sfd(union mysockaddr *addr, char *intname)
+ 	return NULL;
+ #endif
+     }
++
++  if (intname && strlen(intname) != 0)
++    ifindex = if_nametoindex(intname); /* index == 0 when not binding to an interface */
+       
+   /* may have a suitable one already */
+   for (sfd = daemon->sfds; sfd; sfd = sfd->next )
+     if (sockaddr_isequal(&sfd->source_addr, addr) &&
+-	strcmp(intname, sfd->interface) == 0)
++	strcmp(intname, sfd->interface) == 0 &&
++	ifindex == sfd->ifindex) 
+       return sfd;
+   
+   /* need to make a new one. */
+@@ -885,11 +890,13 @@ static struct serverfd *allocate_sfd(union mysockaddr *addr, char *intname)
+       errno = errsave;
+       return NULL;
+     }
+-    
++
+   strcpy(sfd->interface, intname); 
+   sfd->source_addr = *addr;
+   sfd->next = daemon->sfds;
++  sfd->ifindex = ifindex;
+   daemon->sfds = sfd;
++
+   return sfd; 
+ }
+ 
+@@ -944,12 +951,16 @@ void check_servers(void)
+ {
+   struct irec *iface;
+   struct server *new, *tmp, *ret = NULL;
++  struct serverfd *sfd, *tmpfd, **up;
+   int port = 0;
+ 
+   /* interface may be new since startup */
+   if (!option_bool(OPT_NOWILD))
+     enumerate_interfaces();
+   
++  for (sfd = daemon->sfds; sfd; sfd = sfd->next)
++    sfd->used = 0;
++
+   for (new = daemon->servers; new; new = tmp)
+     {
+       tmp = new->next;
+@@ -987,6 +998,9 @@ void check_servers(void)
+ 	      free(new);
+ 	      continue;
+ 	    }
++
++	  if (new->sfd)
++	    new->sfd->used = 1;
+ 	}
+       
+       /* reverse order - gets it right. */
+@@ -1019,6 +1033,20 @@ void check_servers(void)
+ 	}
+     }
+   
++  /* Remove unused sfds */
++  for (sfd = daemon->sfds, up = &daemon->sfds; sfd; sfd = tmpfd)
++    {
++       tmpfd = sfd->next;
++       if (!sfd->used) 
++	{
++	  *up = sfd->next;
++	  close(sfd->fd);
++	  free(sfd);
++	} 
++      else
++	up = &sfd->next;
++    }
++  
+   daemon->servers = ret;
+ }
+ 
