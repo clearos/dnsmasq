@@ -12,68 +12,32 @@
 %define _hardened_build 1
 
 Name:           dnsmasq
-Version:        2.66
-Release:        21%{?extraversion}%{?dist}
+Version:        2.76
+Release:        2%{?extraversion}%{?dist}
 Summary:        A lightweight DHCP/caching DNS server
 
 Group:          System Environment/Daemons
-License:        GPLv2
+License:        GPLv2 or GPLv3
 URL:            http://www.thekelleys.org.uk/dnsmasq/
 Source0:        http://www.thekelleys.org.uk/dnsmasq/%{?extrapath}%{name}-%{version}%{?extraversion}.tar.gz
 Source1:        %{name}.service
+# upstream git: git://thekelleys.org.uk/dnsmasq.git
 
-#include upstream bug fix patches committed after stable release
-# commit 4582c0efe7d7af93517b1f3bcc7af67685ab3e5c
-Patch0:         %{name}-2.66-Fix-wrong_size_in_memset_call.patch
-# commit bd08ae67f9a0cae2ce15be885254cad9449d4551
-Patch1:         %{name}-2.66-Allow-option_number_zero_in_encapsulated_DHCP_options.patch
-# commit 4b5ea12e90024ade5033b3b83a8b2620035952ba
-Patch2:         %{name}-2.66-Send-TCP-DNS-messages-in-one-write-call.patch
-# commit 797a7afba477390bc016c647cfb792c85ee6102d
-Patch3:         %{name}-2.66-Fix-crash-on-SERVFAIL-when-using-conntrack.patch
-# commit aa63a21ce0b20dfe988e0bcdf14b8b930de20311
-Patch4:         %{name}-2.66-Fix-regression-in-dhcp_lease_time-utility.patch
-# commit a66d36ea1112c861ad2f11ed40cc26973873e5be
-Patch5:         %{name}-2.66-Manpage-typos.patch
-# commit 1c10b9de118c951a5aedc130e55101987dcc3feb
-Patch6:         %{name}-2.66-Note-that-dhcp_lease_time-and-dhcp_release-work-for-IPv4.patch
-# commit 86e92f998379d219e10517dfa2c42f544ba164ce
-Patch7:         %{name}-2.66-dhcp-match-now-work-with-BOOTP.patch
-# commit 7abb69b5dc8dbe369be36bd7bf23c039b036acd1
-Patch8:         %{name}-2.66-Tighten_checks_in_legal_hostname.patch
-# commit ddd9a6b499ae601231070854c562611a79e004c0
-Patch9:         %{name}-2.66-replace-inet_addr-with-inet_pton-in-option-c.patch
-# commit b915f837c1db9b8b095158b41028ea71246d68d
-Patch10:        %{name}-2.66-Use-dnsmasq-as-default-DNS-server-for-RA-only-if-it-is-doing-DNS.patch
-# commit 3f2873d42c4d7e7dba32b6e64a3687d43928bc8e - Bug #962246
-Patch11:        %{name}-2.66-Handle_IPv4_interface_address_labels_in_Linux.patch
-# commit cfcad42ff1ddee8e64d120f18016a654152d0215 - Bug #962874
-Patch12:        %{name}-2.66-Fix_failure_to_start_with_ENOTSOCK.patch
-# commit 3e8ed78bf1b2649b13129327700d5d55bd2040e2
-Patch13:        %{name}-2.66-Fix-option-parsing-for-dhcp-host.patch
-# commit baa80ae5125beabd49edae2cdfaf3817a88a2ab6
-Patch14:        %{name}-2.66-Remove-limit-in-prefix-length-in-auth-zone.patch
-# commit 0da5e8979b5e5466d0f7bb836f2716cbcf1d4589
-Patch15:        %{name}-2.66-Log-forwarding-table-overflows.patch
-# commit 429805dbbc3888abc0d472c45935e92057964384
-Patch16:        %{name}-2.66-Allow-constructed-ranges-from-interface-address-at-end-of-range.patch
-# commit e2ba0df2d4798e52e188c2f7f74613867d5aa82a
-Patch17:        %{name}-2.66-Dont-BIND-DHCP-socket-if-more-interfaces-may-come.patch
-# commit 625ac28c61b0a5e6a252db00d72fbac6d88718fd
-Patch18:        %{name}-2.66-Fix_crash_with_empty_DHCP_string_options.patch
-# commit ffbad34b310ab2db6a686c85f5c0a0e52c0680c8
-Patch19:        %{name}-2.66-Set-SOREUSEADDR-as-well-as-SOREUSEPORT-on-DHCP-socke.patch
-# https://bugzilla.redhat.com/show_bug.cgi?id=1179756
-Patch20:        %{name}-2.66-Support-IPv6-assignment-based-on-MAC-for-DHCPv6.patch
-# https://bugzilla.redhat.com/show_bug.cgi?id=1232677
-Patch21:        %{name}-2.66-dhcp-v4-v6.patch
-# https://bugzilla.redhat.com/show_bug.cgi?id=1275626
-Patch22:        %{name}-2.66-rh1275626.patch
-# https://bugzilla.redhat.com/show_bug.cgi?id=1358427
-Patch23:        %{name}-2.66-numeric-hostnames.patch
 # https://bugzilla.redhat.com/show_bug.cgi?id=1367772
-Patch24:        %{name}-2.66-dns-sleep-resume.patch
-
+# commit 2675f2061525bc954be14988d64384b74aa7bf8b
+# after v2.76
+Patch1:         dnsmasq-2.76-dns-sleep-resume.patch
+# commit 591ed1e90503817938ccf5f127e677a8dd48b6d8
+Patch2:         dnsmasq-2.76-fix-dhcp-option-arrangements.patch
+# commit 396750cef533cf72c7e6a72e47a9c93e2e431cb7
+Patch3:         dnsmasq-2.76-pftables.patch
+# commit 16800ea072dd0cdf14d951c4bb8d2808b3dfe53d
+Patch4:         dnsmasq-2.76-fix-crash-dns-resume.patch
+# commit 13dee6f49e1d035b8069947be84ee8da2af0c420
+Patch5:		dnsmasq-2.76-warning-fixes.patch
+Patch6:		dnsmasq-2.76-label-warning.patch
+Patch7:		dnsmasq-2.76-label-man.patch
+Patch8:		dnsmasq-2.76-coverity.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -109,31 +73,14 @@ query/remove a DHCP server's leases.
 %prep
 %setup -q -n %{name}-%{version}%{?extraversion}
 
-%patch0 -p1 -b .wrong_size
-%patch1 -p1 -b .zero_DHCP_option
-%patch2 -p1 -b .tcp_dns_in_one_packet
-%patch3 -p1 -b .SERVFAIL_crash
-%patch4 -p1 -b .dhcp_lease_time-regression
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
 %patch5 -p1
-%patch6 -p1 -b .utils_work_only_ipv4
-%patch7 -p1 -b .dhcp-match_bootp
-%patch8 -p1 -b .hosname_checks
-%patch9 -p1 -b .inet_pton
-%patch10 -p1 -b .default_dns_server
-%patch11 -p1 -b .interface_aliases
-%patch12 -p1 -b .enotsock_failure
-%patch13 -p1 -b .option_parsing
-%patch14 -p1 -b .auth_zone_limit
-%patch15 -p1 -b .log_overflow
-%patch16 -p1 -b .constr_range
-%patch17 -p1 -b .bindtodevice
-%patch18 -p1 -b .empty_dhcp_opts
-%patch19 -p1 -b .reuseport
-%patch20 -p1
-%patch21 -p1
-%patch22 -p1
-%patch23 -p1
-%patch24 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1 -b .coverity
 
 # use /var/lib/dnsmasq instead of /var/lib/misc
 for file in dnsmasq.conf.example man/dnsmasq.8 man/es/dnsmasq.8 src/config.h; do
@@ -146,13 +93,17 @@ sed -i 's|/\* #define HAVE_DBUS \*/|#define HAVE_DBUS|g' src/config.h
 #enable IDN support
 sed -i 's|/\* #define HAVE_IDN \*/|#define HAVE_IDN|g' src/config.h
 
-#enable /etc/dnsmasq.d fix bz 526703
-sed -i 's|#conf-dir=/etc/dnsmasq.d|conf-dir=/etc/dnsmasq.d|g' dnsmasq.conf.example
+#enable /etc/dnsmasq.d fix bz 526703, ignore RPM backup files
+cat << EOF >> dnsmasq.conf.example
+
+# Include all files in /etc/dnsmasq.d except RPM backup files
+conf-dir=/etc/dnsmasq.d,.rpmnew,.rpmsave,.rpmorig
+EOF
 
 
 %build
 make %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
-make -C contrib/wrt %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
+make -C contrib/lease-tools %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
 
 
 %install
@@ -171,10 +122,12 @@ install -m 644 man/dnsmasq.8 $RPM_BUILD_ROOT%{_mandir}/man8/
 # utils sub package
 mkdir -p $RPM_BUILD_ROOT%{_bindir} \
          $RPM_BUILD_ROOT%{_mandir}/man1
-install -m 755 contrib/wrt/dhcp_release $RPM_BUILD_ROOT%{_bindir}/dhcp_release
-install -m 644 contrib/wrt/dhcp_release.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_release.1
-install -m 755 contrib/wrt/dhcp_lease_time $RPM_BUILD_ROOT%{_bindir}/dhcp_lease_time
-install -m 644 contrib/wrt/dhcp_lease_time.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_lease_time.1
+install -m 755 contrib/lease-tools/dhcp_release $RPM_BUILD_ROOT%{_bindir}/dhcp_release
+install -m 644 contrib/lease-tools/dhcp_release.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_release.1
+install -m 755 contrib/lease-tools/dhcp_release6 $RPM_BUILD_ROOT%{_bindir}/dhcp_release6
+install -m 644 contrib/lease-tools/dhcp_release6.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_release6.1
+install -m 755 contrib/lease-tools/dhcp_lease_time $RPM_BUILD_ROOT%{_bindir}/dhcp_lease_time
+install -m 644 contrib/lease-tools/dhcp_lease_time.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_lease_time.1
 
 # Systemd
 mkdir -p %{buildroot}%{_unitdir}
@@ -200,7 +153,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root,-)
-%doc CHANGELOG COPYING FAQ doc.html setup.html dbus/DBus-interface
+%doc CHANGELOG COPYING COPYING-v3 FAQ doc.html setup.html dbus/DBus-interface
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/dnsmasq.conf
 %dir /etc/dnsmasq.d
 %dir %{_var}/lib/dnsmasq
@@ -214,6 +167,17 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
+* Wed Mar 15 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2
+- Fix a few coverity warnings
+- package is dual-licensed GPL v2 or v3
+- don't include /etc/dnsmasq.d in triplicate, ignore RPM backup files instead
+
+* Tue Feb 21 2017 Petr Menšík <pemensik@redhat.com> - 2.76-1
+- Rebase to 2.76 (#1375527)
+- Include also dhcp_release6 (#1375569)
+- Fix compilation warnings
+- Correct manual about interface aliases, warn if used without --bind*
+
 * Tue Sep 13 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-21
 - Related: #1367772 - fix dns server update
 
