@@ -13,7 +13,7 @@
 
 Name:           dnsmasq
 Version:        2.76
-Release:        2%{?extraversion}%{?dist}
+Release:        2%{?extraversion}%{?dist}.2
 Summary:        A lightweight DHCP/caching DNS server
 
 Group:          System Environment/Daemons
@@ -38,6 +38,17 @@ Patch5:		dnsmasq-2.76-warning-fixes.patch
 Patch6:		dnsmasq-2.76-label-warning.patch
 Patch7:		dnsmasq-2.76-label-man.patch
 Patch8:		dnsmasq-2.76-coverity.patch
+Patch9:		dnsmasq-2.76-CVE-2017-14491.patch
+Patch10:	dnsmasq-2.76-CVE-2017-14492.patch
+Patch11:	dnsmasq-2.76-CVE-2017-14493.patch
+Patch12:	dnsmasq-2.76-CVE-2017-14494.patch
+Patch13:	dnsmasq-2.76-CVE-2017-14496.patch
+Patch14:	dnsmasq-2.76-CVE-2017-14495.patch
+# commit a3303e196e5d304ec955c4d63afb923ade66c6e8
+Patch15:	dnsmasq-2.76-gita3303e196.patch
+Patch16:	dnsmasq-2.76-underflow.patch
+Patch17:	dnsmasq-2.76-misc-cleanups.patch
+Patch18:	dnsmasq-2.76-CVE-2017-14491-2.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
@@ -81,6 +92,16 @@ query/remove a DHCP server's leases.
 %patch6 -p1
 %patch7 -p1
 %patch8 -p1 -b .coverity
+%patch9 -p1 -b .CVE-2017-14491
+%patch10 -p1 -b .CVE-2017-14492
+%patch11 -p1 -b .CVE-2017-14493
+%patch12 -p1 -b .CVE-2017-14494
+%patch13 -p1 -b .CVE-2017-14496
+%patch14 -p1 -b .CVE-2017-14495
+%patch15 -p1 -b .gita3303e196
+%patch16 -p1 -b .underflow
+%patch17 -p1 -b .misc
+%patch18 -p1 -b .CVE-2017-14491-2
 
 # use /var/lib/dnsmasq instead of /var/lib/misc
 for file in dnsmasq.conf.example man/dnsmasq.8 man/es/dnsmasq.8 src/config.h; do
@@ -167,6 +188,18 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
+* Wed Sep 27 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2.2
+- Small correction of CVE-2017-14491
+
+* Tue Sep 26 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2.1
+- Fix CVE-2017-14491
+- Fix CVE-2017-14492
+- Fix CVE-2017-14493
+- Fix CVE-2017-14494
+- Fix CVE-2017-14496
+- Fix CVE-2017-14495
+- extra fixes
+
 * Wed Mar 15 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2
 - Fix a few coverity warnings
 - package is dual-licensed GPL v2 or v3
