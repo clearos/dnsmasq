@@ -2,40 +2,65 @@
 %define releasecandidate 0
 %if 0%{testrelease}
   %define extrapath test-releases/
-  %define extraversion test16
+  %define extraversion test30
 %endif
 %if 0%{releasecandidate}
   %define extrapath release-candidates/
-  %define extraversion rc1
+  %define extraversion rc5
 %endif
 
 %define _hardened_build 1
 
 Name:           dnsmasq
-Version:        2.72
-Release:        4%{?extraversion:.%{extraversion}}%{?dist}
+Version:        2.76
+Release:        2%{?extraversion}%{?dist}.2
 Summary:        A lightweight DHCP/caching DNS server
 
 Group:          System Environment/Daemons
 License:        GPLv2 or GPLv3
 URL:            http://www.thekelleys.org.uk/dnsmasq/
-Source0:        http://www.thekelleys.org.uk/dnsmasq/%{?extrapath}%{name}-%{version}%{?extraversion}.tar.xz
+Source0:        http://www.thekelleys.org.uk/dnsmasq/%{?extrapath}%{name}-%{version}%{?extraversion}.tar.gz
 Source1:        %{name}.service
+# upstream git: git://thekelleys.org.uk/dnsmasq.git
 
-# Patches
-Patch1:         dnsmasq-2.72-configuration.patch
+# https://bugzilla.redhat.com/show_bug.cgi?id=1367772
+# commit 2675f2061525bc954be14988d64384b74aa7bf8b
+# after v2.76
+Patch1:         dnsmasq-2.76-dns-sleep-resume.patch
+# commit 591ed1e90503817938ccf5f127e677a8dd48b6d8
+Patch2:         dnsmasq-2.76-fix-dhcp-option-arrangements.patch
+# commit 396750cef533cf72c7e6a72e47a9c93e2e431cb7
+Patch3:         dnsmasq-2.76-pftables.patch
+# commit 16800ea072dd0cdf14d951c4bb8d2808b3dfe53d
+Patch4:         dnsmasq-2.76-fix-crash-dns-resume.patch
+# commit 13dee6f49e1d035b8069947be84ee8da2af0c420
+Patch5:		dnsmasq-2.76-warning-fixes.patch
+Patch6:		dnsmasq-2.76-label-warning.patch
+Patch7:		dnsmasq-2.76-label-man.patch
+Patch8:		dnsmasq-2.76-coverity.patch
+Patch9:		dnsmasq-2.76-CVE-2017-14491.patch
+Patch10:	dnsmasq-2.76-CVE-2017-14492.patch
+Patch11:	dnsmasq-2.76-CVE-2017-14493.patch
+Patch12:	dnsmasq-2.76-CVE-2017-14494.patch
+Patch13:	dnsmasq-2.76-CVE-2017-14496.patch
+Patch14:	dnsmasq-2.76-CVE-2017-14495.patch
+# commit a3303e196e5d304ec955c4d63afb923ade66c6e8
+Patch15:	dnsmasq-2.76-gita3303e196.patch
+Patch16:	dnsmasq-2.76-underflow.patch
+Patch17:	dnsmasq-2.76-misc-cleanups.patch
+Patch18:	dnsmasq-2.76-CVE-2017-14491-2.patch
 
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  dbus-devel
 BuildRequires:  pkgconfig
 BuildRequires:  libidn-devel
-BuildRequires:  nettle-devel
 
 BuildRequires:  systemd
-Requires(post): systemd
+Requires(post): systemd systemd-sysv chkconfig
 Requires(preun): systemd
 Requires(postun): systemd
+
 
 %description
 Dnsmasq is lightweight, easy to configure DNS forwarder and DHCP server.
@@ -59,7 +84,24 @@ query/remove a DHCP server's leases.
 %prep
 %setup -q -n %{name}-%{version}%{?extraversion}
 
-%patch1 -p1 -b .syntax_err
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
+%patch6 -p1
+%patch7 -p1
+%patch8 -p1 -b .coverity
+%patch9 -p1 -b .CVE-2017-14491
+%patch10 -p1 -b .CVE-2017-14492
+%patch11 -p1 -b .CVE-2017-14493
+%patch12 -p1 -b .CVE-2017-14494
+%patch13 -p1 -b .CVE-2017-14496
+%patch14 -p1 -b .CVE-2017-14495
+%patch15 -p1 -b .gita3303e196
+%patch16 -p1 -b .underflow
+%patch17 -p1 -b .misc
+%patch18 -p1 -b .CVE-2017-14491-2
 
 # use /var/lib/dnsmasq instead of /var/lib/misc
 for file in dnsmasq.conf.example man/dnsmasq.8 man/es/dnsmasq.8 src/config.h; do
@@ -72,9 +114,6 @@ sed -i 's|/\* #define HAVE_DBUS \*/|#define HAVE_DBUS|g' src/config.h
 #enable IDN support
 sed -i 's|/\* #define HAVE_IDN \*/|#define HAVE_IDN|g' src/config.h
 
-#enable DNSSEC support
-sed -i 's|/\* #define HAVE_DNSSEC \*/|#define HAVE_DNSSEC|g' src/config.h
-
 #enable /etc/dnsmasq.d fix bz 526703, ignore RPM backup files
 cat << EOF >> dnsmasq.conf.example
 
@@ -85,7 +124,7 @@ EOF
 
 %build
 make %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
-make -C contrib/wrt %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
+make -C contrib/lease-tools %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RPM_LD_FLAGS"
 
 
 %install
@@ -104,10 +143,12 @@ install -m 644 man/dnsmasq.8 $RPM_BUILD_ROOT%{_mandir}/man8/
 # utils sub package
 mkdir -p $RPM_BUILD_ROOT%{_bindir} \
          $RPM_BUILD_ROOT%{_mandir}/man1
-install -m 755 contrib/wrt/dhcp_release $RPM_BUILD_ROOT%{_bindir}/dhcp_release
-install -m 644 contrib/wrt/dhcp_release.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_release.1
-install -m 755 contrib/wrt/dhcp_lease_time $RPM_BUILD_ROOT%{_bindir}/dhcp_lease_time
-install -m 644 contrib/wrt/dhcp_lease_time.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_lease_time.1
+install -m 755 contrib/lease-tools/dhcp_release $RPM_BUILD_ROOT%{_bindir}/dhcp_release
+install -m 644 contrib/lease-tools/dhcp_release.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_release.1
+install -m 755 contrib/lease-tools/dhcp_release6 $RPM_BUILD_ROOT%{_bindir}/dhcp_release6
+install -m 644 contrib/lease-tools/dhcp_release6.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_release6.1
+install -m 755 contrib/lease-tools/dhcp_lease_time $RPM_BUILD_ROOT%{_bindir}/dhcp_lease_time
+install -m 644 contrib/lease-tools/dhcp_lease_time.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_lease_time.1
 
 # Systemd
 mkdir -p %{buildroot}%{_unitdir}
@@ -126,6 +167,11 @@ rm -rf $RPM_BUILD_ROOT
 %postun
 %systemd_postun_with_restart dnsmasq.service
 
+%triggerun -- dnsmasq < 2.52-3
+%{_bindir}/systemd-sysv-convert --save dnsmasq >/dev/null 2>&1 ||:
+/sbin/chkconfig --del dnsmasq >/dev/null 2>&1 || :
+/bin/systemctl try-restart dnsmasq.service >/dev/null 2>&1 || :
+
 %files
 %defattr(-,root,root,-)
 %doc CHANGELOG COPYING COPYING-v3 FAQ doc.html setup.html dbus/DBus-interface
@@ -142,80 +188,89 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
-* Wed Jun 17 2015 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.72-4
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_23_Mass_Rebuild
+* Wed Sep 27 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2.2
+- Small correction of CVE-2017-14491
 
-* Mon Oct 06 2014 Nils Philippsen <nils@redhat.com> - 2.72-3
-- don't include /etc/dnsmasq.d in triplicate, ignore RPM backup files instead
+* Tue Sep 26 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2.1
+- Fix CVE-2017-14491
+- Fix CVE-2017-14492
+- Fix CVE-2017-14493
+- Fix CVE-2017-14494
+- Fix CVE-2017-14496
+- Fix CVE-2017-14495
+- extra fixes
+
+* Wed Mar 15 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2
+- Fix a few coverity warnings
 - package is dual-licensed GPL v2 or v3
-- drop %%triggerun, we're not supposed to automatically migrate from SysV to
-  systemd anyway
+- don't include /etc/dnsmasq.d in triplicate, ignore RPM backup files instead
 
-* Mon Oct 06 2014 Tomas Hozza <thozza@redhat.com> - 2.72-2
-- Fix typo in default configuration (#1149459)
+* Tue Feb 21 2017 Petr Menšík <pemensik@redhat.com> - 2.76-1
+- Rebase to 2.76 (#1375527)
+- Include also dhcp_release6 (#1375569)
+- Fix compilation warnings
+- Correct manual about interface aliases, warn if used without --bind*
 
-* Thu Sep 25 2014 Tomas Hozza <thozza@redhat.com> - 2.72-1
-- Update to 2.72 stable
+* Tue Sep 13 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-21
+- Related: #1367772 - fix dns server update
 
-* Sat Aug 16 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.71-3
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_22_Mass_Rebuild
+* Thu Sep 08 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-20
+- Related: #1367772 - additional upstream patch
 
-* Sat Jun 07 2014 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.71-2
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_21_Mass_Rebuild
+* Tue Sep 06 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-19
+- Resolves: #1367772 - dns not updated after sleep and resume laptop
 
-* Tue May 20 2014 Tomas Hozza <thozza@redhat.com> - 2.71-1
-- Update to 2.71 stable
+* Fri Aug 26 2016 root - 2.66-18
+- Resolves: #1358427 - dhcp errors with hostnames beginning with numbers
 
-* Fri Apr 25 2014 Tomas Hozza <thozza@redhat.com> - 2.70-1
-- Update to 2.70 stable
+* Tue May 31 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-17
+- Resolves: #1275626 - modify the patch using new information
 
-* Fri Apr 11 2014 Tomas Hozza <thozza@redhat.com> - 2.69-1
-- Update to 2.69 stable
+* Mon May 30 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-16
+- Resolves: #1275626 - use the patch
 
-* Mon Mar 24 2014 Tomas Hozza <thozza@redhat.com> - 2.69-0.1.rc1
-- Update to 2.69rc1
-- enable DNSSEC implementation
+* Wed May 25 2016 Pavel Šimerda <psimerda@redhat.com> - 2.66-15
+- Resolves: #1275626 - dnsmasq crash with coredump on infiniband network with
+  OpenStack
 
-* Mon Dec 09 2013 Tomas Hozza <thozza@redhat.com> - 2.68-1
-- Update to 2.68 stable
+* Thu Jun 25 2015 Pavel Šimerda <psimerda@redhat.com> - 2.66-14
+- Resolves: #1232677 - handle IPv4 and IPv6 host entries properly
 
-* Tue Nov 26 2013 Tomas Hozza <thozza@redhat.com> - 2.68-0.1.rc3
-- Update to 2.68rc3
+* Wed Feb 25 2015 Pavel Šimerda <psimerda@redhat.com> - 2.66-13
+- Resolves: #1179756 - dnsmasq does not support MAC address based matching for
+  IPv6
 
-* Fri Nov 01 2013 Tomas Hozza <thozza@redhat.com> - 2.67-1
-- Update to 2.67 stable
-- Include one post release upstream fix for CNAME
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 2.66-12
+- Mass rebuild 2014-01-24
 
-* Fri Oct 18 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.9.rc4
-- update to 2.67rc4
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 2.66-11
+- Mass rebuild 2013-12-27
 
-* Wed Oct 02 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.8.rc2
-- update to 2.67rc2
-
-* Thu Sep 12 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.7.test13
-- update to 2.67test13
-- use .tar.xz upstream archives
-
-* Thu Aug 15 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.6.test7
+* Thu Aug 15 2013 Tomas Hozza <thozza@redhat.com> - 2.66-10
 - Use SO_REUSEPORT and SO_REUSEADDR if possible for DHCPv4/6 (#981973)
 
-* Mon Aug 12 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.5.test7
+* Mon Aug 12 2013 Tomas Hozza <thozza@redhat.com> - 2.66-9
 - Don't use SO_REUSEPORT on DHCPv4 socket to prevent conflicts with ISC DHCP (#981973)
 
-* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 2.67-0.4.test7
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+* Tue Jul 23 2013 Tomas Hozza <thozza@redhat.com> - 2.66-8
+- Fix crash when specified empty DHCP option
 
-* Tue Jun 11 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.3.test7
-- update to 2.67test7
-- drop merged patch
+* Tue Jun 11 2013 Tomas Hozza <thozza@redhat.com> - 2.66-7
 - use _hardened_build macro instead of hardcoded flags
+- include several fixies from upstream repo:
+  - Allow constructed ranges from interface address at end of range
+  - Dont BINDTODEVICE DHCP socket if more interfaces may come
+  - Fix option parsing for dhcp host
+  - Log forwarding table overflows
+  - Remove limit in prefix length in auth zone
 
-* Fri May 17 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.2.test4
-- Fix failure to start with ENOTSOCK (#962874)
-
-* Wed May 15 2013 Tomas Hozza <thozza@redhat.com> - 2.67-0.1.test4
-- update to the latest testing release 2.67test4 (#962246)
-- drop mergerd patches
+* Fri May 17 2013 Tomas Hozza <thozza@redhat.com> - 2.66-6
+- include several fixies from upstream repo:
+  - Tighten hostname checks in legal hostname() function
+  - Replace inet_addr() with inet_pton() in src/option.c
+  - Use dnsmasq as default DNS server for RA only if it's doing DNS
+  - Handle IPv4 interface address labels (aliases) in Linux (#962246)
+  - Fix failure to start with ENOTSOCK (#962874)
 
 * Tue Apr 30 2013 Tomas Hozza <thozza@redhat.com> - 2.66-5
 - dnsmasq unit file cleanup
