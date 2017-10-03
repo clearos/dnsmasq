@@ -20,7 +20,7 @@ Group:          System Environment/Daemons
 License:        GPLv2 or GPLv3
 URL:            http://www.thekelleys.org.uk/dnsmasq/
 Source0:        http://www.thekelleys.org.uk/dnsmasq/%{?extrapath}%{name}-%{version}%{?extraversion}.tar.gz
-Source1:        %{name}.service
+Source1:        dnsmasq.init
 # upstream git: git://thekelleys.org.uk/dnsmasq.git
 
 # https://bugzilla.redhat.com/show_bug.cgi?id=1367772
@@ -56,11 +56,11 @@ BuildRequires:  dbus-devel
 BuildRequires:  pkgconfig
 BuildRequires:  libidn-devel
 
-BuildRequires:  systemd
-Requires(post): systemd systemd-sysv chkconfig
-Requires(preun): systemd
-Requires(postun): systemd
-
+Requires(post):  /sbin/chkconfig
+Requires(post):  /sbin/service
+Requires(post):  /bin/sed /bin/grep
+Requires(preun): /sbin/chkconfig
+Requires(preun): /sbin/service
 
 %description
 Dnsmasq is lightweight, easy to configure DNS forwarder and DHCP server.
@@ -130,7 +130,7 @@ make -C contrib/lease-tools %{?_smp_mflags} CFLAGS="$RPM_OPT_FLAGS" LDFLAGS="$RP
 %install
 rm -rf $RPM_BUILD_ROOT
 # normally i'd do 'make install'...it's a bit messy, though
-mkdir -p $RPM_BUILD_ROOT%{_sbindir} \
+mkdir -p $RPM_BUILD_ROOT%{_sbindir} $RPM_BUILD_ROOT%{_initrddir} \
         $RPM_BUILD_ROOT%{_mandir}/man8 \
         $RPM_BUILD_ROOT%{_var}/lib/dnsmasq \
         $RPM_BUILD_ROOT%{_sysconfdir}/dnsmasq.d \
@@ -138,6 +138,7 @@ mkdir -p $RPM_BUILD_ROOT%{_sbindir} \
 install src/dnsmasq $RPM_BUILD_ROOT%{_sbindir}/dnsmasq
 install dnsmasq.conf.example $RPM_BUILD_ROOT%{_sysconfdir}/dnsmasq.conf
 install dbus/dnsmasq.conf $RPM_BUILD_ROOT%{_sysconfdir}/dbus-1/system.d/
+install %{SOURCE1} $RPM_BUILD_ROOT%{_initrddir}/dnsmasq
 install -m 644 man/dnsmasq.8 $RPM_BUILD_ROOT%{_mandir}/man8/
 
 # utils sub package
@@ -150,27 +151,36 @@ install -m 644 contrib/lease-tools/dhcp_release6.1 $RPM_BUILD_ROOT%{_mandir}/man
 install -m 755 contrib/lease-tools/dhcp_lease_time $RPM_BUILD_ROOT%{_bindir}/dhcp_lease_time
 install -m 644 contrib/lease-tools/dhcp_lease_time.1 $RPM_BUILD_ROOT%{_mandir}/man1/dhcp_lease_time.1
 
-# Systemd
-mkdir -p %{buildroot}%{_unitdir}
-install -m644 %{SOURCE1} %{buildroot}%{_unitdir}
-rm -rf %{buildroot}%{_initrddir}
-
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %post
-%systemd_post dnsmasq.service
+if [ "$1" = "2" ]; then # if we're being upgraded
+    # if using the old leases location, move the file to the new one
+    # but only if we're not clobbering another file
+    #
+    if [ -f /var/lib/misc/dnsmasq.leases -a ! -f /var/lib/dnsmasq/dnsmasq.leases ]; then
+        # causes rpmlint to report dangerous-command-in-post,
+        # but that's the price of selinux compliance :-(
+        mv -f /var/lib/misc/dnsmasq.leases /var/lib/dnsmasq/dnsmasq.leases || :
+    fi
+    # ugly, but kind of necessary
+    if [ ! `grep -q dhcp-leasefile=/var/lib/misc/dnsmasq.leases %{_sysconfdir}/dnsmasq.conf` ]; then
+        cp %{_sysconfdir}/dnsmasq.conf %{_sysconfdir}/dnsmasq.conf.tmp || :
+        sed -e 's/var\/lib\/misc/var\/lib\/dnsmasq/' < %{_sysconfdir}/dnsmasq.conf.tmp > %{_sysconfdir}/dnsmasq.conf || :
+        rm -f %{_sysconfdir}/dnsmasq.conf.tmp || :
+    fi
+    /sbin/service dnsmasq condrestart >/dev/null 2>&1 || :
+else # if we're being installed
+    /sbin/chkconfig --add dnsmasq
+fi
 
 %preun
-%systemd_preun dnsmasq.service
+if [ "$1" = "0" ]; then     # execute this only if we are NOT doing an upgrade
+    /sbin/service dnsmasq stop >/dev/null 2>&1 || :
+    /sbin/chkconfig --del dnsmasq
+fi
 
-%postun
-%systemd_postun_with_restart dnsmasq.service
-
-%triggerun -- dnsmasq < 2.52-3
-%{_bindir}/systemd-sysv-convert --save dnsmasq >/dev/null 2>&1 ||:
-/sbin/chkconfig --del dnsmasq >/dev/null 2>&1 || :
-/bin/systemctl try-restart dnsmasq.service >/dev/null 2>&1 || :
 
 %files
 %defattr(-,root,root,-)
@@ -179,7 +189,7 @@ rm -rf $RPM_BUILD_ROOT
 %dir /etc/dnsmasq.d
 %dir %{_var}/lib/dnsmasq
 %config(noreplace) %attr(644,root,root) %{_sysconfdir}/dbus-1/system.d/dnsmasq.conf
-%{_unitdir}/%{name}.service
+%{_initrddir}/dnsmasq
 %{_sbindir}/dnsmasq
 %{_mandir}/man8/dnsmasq*
 
@@ -188,6 +198,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/dhcp_*
 
 %changelog
+* Tue Oct 03 2017 ClearFoundation <developer@clearfoundation.com> - 2.76-2.2.clear
+- Backported version from RHEL 7
+
 * Wed Sep 27 2017 Petr Menšík <pemensik@redhat.com> - 2.76-2.2
 - Small correction of CVE-2017-14491
 
